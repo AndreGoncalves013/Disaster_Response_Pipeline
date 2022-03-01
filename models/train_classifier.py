@@ -3,11 +3,12 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 
 import nltk
 nltk.download(['punkt', 'wordnet', 'averaged_perceptron_tagger'])
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import re
 
@@ -15,18 +16,28 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 from sklearn.multioutput import MultiOutputClassifier
 
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, classification_report
 
 import pickle
+import gzip
 
 
 def load_data(database_filepath):
+    '''
+    INPUT
+    database_filepath - file path of the dataset
+        
+    OUTPUT
+    X - Dataframe with model features
+    Y - Dataframe with target features
+    category_names - list of all target category columns
+    '''
     
     engine = create_engine(f'sqlite:///{database_filepath}')
-    df = pd.read_sql_table('disaster_messages', engine) 
-    df = df.head(100)
+    df = pd.read_sql_table('disaster_messages', engine)
 
     X = df.message
     Y = df[df.columns[4:]]
@@ -36,27 +47,52 @@ def load_data(database_filepath):
 
 
 def twitter_text_cleaning(text):
+    '''
+    INPUT
+    text - text that might contain mentions and hashtags
+        
+    OUTPUT
+    text - text with mentions and hashtags removed
+    '''
     
-  text = re.sub(r'@[A-Za-z0-9]+', 'mentionplaceholder', text)
-  text = re.sub(r'@[A-Za-zA-Z0-9]+', 'mentionplaceholder', text)
-  text = re.sub(r'@[A-Za-z0-9_]+','mentionplaceholder', text)
-  text = re.sub(r'@[A-Za-z]+', 'mentionplaceholder', text)
-  text = re.sub(r'@[-)]+', 'mentionplaceholder', text)
-  text = re.sub(r'#', 'hashtagplaceholder', text)
+    text = re.sub(r'@[A-Za-z0-9]+', 'mentionplaceholder', text)
+    text = re.sub(r'@[A-Za-zA-Z0-9]+', 'mentionplaceholder', text)
+    text = re.sub(r'@[A-Za-z0-9_]+','mentionplaceholder', text)
+    text = re.sub(r'@[A-Za-z]+', 'mentionplaceholder', text)
+    text = re.sub(r'@[-)]+', 'mentionplaceholder', text)
+    text = re.sub(r'#', 'hashtagplaceholder', text)
 
-  return text
+    return text
 
 def tokenize(text):
+    '''
+    INPUT
+    text - text that will be tokenized
+        
+    OUTPUT
+    clean_tokens - tokens to be used as features to machine learning models
+    '''
     
+    # Removing mentions and hashtags
     text = twitter_text_cleaning(text)
+    text = text.lower()
+    text = re.sub("[^\w\s]", " ", text)
     
+    # Removing urls
     url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+1'
     detected_urls = re.findall(url_regex, text)
     
     for url in detected_urls:
         text = text.replace(url, "urlplaceholder")
 
+    # Converting words into tokens
     tokens = word_tokenize(text)
+
+    stop_words = stopwords.words("english")
+
+    tokens = [t for t in tokens if t not in stop_words]
+
+    # Doing lemmatisation process on the tokens
     lemmatizer = WordNetLemmatizer()
 
     clean_tokens = []
@@ -69,17 +105,45 @@ def tokenize(text):
 
 def build_model():
     
+    '''
+    Function that creates the pipeline for data preprocessing and modeling
+    '''
+
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
         ('clf', MultiOutputClassifier(RandomForestClassifier()))
+        #('clf', MultiOutputClassifier(SVC()))
     ])
+
+    #param_grid = {
+    #    'clf__estimator__max_depth': [1000, 5000],
+    #    'clf__estimator__n_estimators': [500, 1000]
+    #}
+
+
+    #param_grid = {
+    #    'clf__estimator__kernel': ['linear', 'rbf'],
+    #    'clf__estimator__C':[1, 10]
+    #}
+
+    #cv = GridSearchCV(pipeline, param_grid=param_grid, verbose = 4)
 
     return pipeline
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
     
+    '''
+    Function for calculating classification metrics to evaluate model performance
+
+    INPUT
+    model - Trained machine learning model
+    X_test = Model features of the test dataset
+    Y_test- Target features of the test dataset
+    category_names - List with the name of each target feature
+    '''
+
     Y_pred = model.predict(X_test)
 
     report_list = []
@@ -106,7 +170,17 @@ def evaluate_model(model, X_test, Y_test, category_names):
 
 
 def save_model(model, model_filepath):
-    pickle.dump(model, open(model_filepath, 'wb'))
+
+    '''
+    INPUT
+    model - Trained machine learning model
+    model_filepath = Path where the model will be saved
+    '''
+
+    with gzip.open(model_filepath, 'wb') as f:
+        pickle.dump(model, f)
+
+    #pickle.dump(model, open(model_filepath, 'wb'))
 
 
 def main():
@@ -126,7 +200,7 @@ def main():
         evaluate_model(model, X_test, Y_test, category_names)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        save_model(model, model_filepath)
+        #save_model(model, model_filepath)
 
         print('Trained model saved!')
 
