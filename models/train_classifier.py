@@ -121,12 +121,6 @@ def build_model():
         'clf__estimator__n_estimators': [5, 10, 20]
     }
 
-
-    #param_grid = {
-    #    'clf__estimator__kernel': ['linear', 'rbf'],
-    #    'clf__estimator__C':[1, 10]
-    #}
-
     cv = GridSearchCV(pipeline, param_grid=param_grid, verbose = 4, cv=2)
 
     return cv
