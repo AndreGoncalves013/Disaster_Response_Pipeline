@@ -116,10 +116,10 @@ def build_model():
         #('clf', MultiOutputClassifier(SVC()))
     ])
 
-    #param_grid = {
-    #    'clf__estimator__max_depth': [1000, 5000],
-    #    'clf__estimator__n_estimators': [500, 1000]
-    #}
+    param_grid = {
+        'clf__estimator__max_depth': [100, 200],
+        'clf__estimator__n_estimators': [5, 10, 20]
+    }
 
 
     #param_grid = {
@@ -127,9 +127,9 @@ def build_model():
     #    'clf__estimator__C':[1, 10]
     #}
 
-    #cv = GridSearchCV(pipeline, param_grid=param_grid, verbose = 4)
+    cv = GridSearchCV(pipeline, param_grid=param_grid, verbose = 4, cv=2)
 
-    return pipeline
+    return cv
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
@@ -177,10 +177,7 @@ def save_model(model, model_filepath):
     model_filepath = Path where the model will be saved
     '''
 
-    with gzip.open(model_filepath, 'wb') as f:
-        pickle.dump(model, f)
-
-    #pickle.dump(model, open(model_filepath, 'wb'))
+    pickle.dump(model, open(model_filepath, 'wb'))
 
 
 def main():
@@ -200,7 +197,7 @@ def main():
         evaluate_model(model, X_test, Y_test, category_names)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        #save_model(model, model_filepath)
+        save_model(model, model_filepath)
 
         print('Trained model saved!')
 
