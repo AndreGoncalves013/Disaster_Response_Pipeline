@@ -88,8 +88,8 @@ def tokenize(text):
     # Converting words into tokens
     tokens = word_tokenize(text)
 
+    # Removing stopwords from the vocabulary
     stop_words = stopwords.words("english")
-
     tokens = [t for t in tokens if t not in stop_words]
 
     # Doing lemmatisation process on the tokens
@@ -113,7 +113,6 @@ def build_model():
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
         ('clf', MultiOutputClassifier(RandomForestClassifier()))
-        #('clf', MultiOutputClassifier(SVC()))
     ])
 
     param_grid = {
