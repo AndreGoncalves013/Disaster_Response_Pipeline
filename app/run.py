@@ -9,8 +9,13 @@ from nltk.tokenize import word_tokenize
 from flask import Flask
 from flask import render_template, request, jsonify
 from plotly.graph_objs import Bar
+import plotly.express as px
 from sqlalchemy import create_engine
 
+from visualizations import (
+    create_percentage_occurency_per_category_chart,
+    create_category_correlation_heatmap_chart
+)
 
 app = Flask(__name__)
 
@@ -32,6 +37,21 @@ df = pd.read_sql_table('disaster_messages', engine)
 # load model
 model = joblib.load("../models/classifier.pkl")
 
+def format_category_text(category):
+    return category.capitalize().replace('_', ' ')
+
+def create_occurrency_category_dataframe(df):
+
+    categories_names = df.columns[4:]
+
+    category_mean_df = df[categories_names].mean(axis=0).reset_index()
+    category_mean_df = category_mean_df.rename(columns={'index':'category', 0:'percentage'})
+    category_mean_df['category'] = category_mean_df['category'].apply(format_category_text)
+    category_mean_df = category_mean_df.sort_values(by='percentage')
+
+    return category_mean_df
+
+
 
 # index webpage displays cool visuals and receives user input text for model
 @app.route('/')
@@ -42,30 +62,12 @@ def index():
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
-    
-    # create visuals
-    # TODO: Below is an example - modify to create your own visuals
-    graphs = [
-        {
-            'data': [
-                Bar(
-                    x=genre_names,
-                    y=genre_counts
-                )
-            ],
 
-            'layout': {
-                'title': 'Distribution of Message Genres',
-                'yaxis': {
-                    'title': "Count"
-                },
-                'xaxis': {
-                    'title': "Genre"
-                }
-            }
-        }
-    ]
+    fig1 = create_percentage_occurency_per_category_chart(df)
+    fig2 = create_category_correlation_heatmap_chart(df)
     
+    graphs = [fig1, fig2]
+
     # encode plotly graphs in JSON
     ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
