@@ -21,9 +21,11 @@ from sklearn.multioutput import MultiOutputClassifier
 
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, classification_report
 
+import plotly.express as px
+import kaleido
+
 import pickle
 import gzip
-
 
 def load_data(database_filepath):
     '''
@@ -124,6 +126,33 @@ def build_model():
 
     return cv
 
+def create_classification_metrics_heatmap(df):
+
+    '''
+    INPUT
+    df - Dataframe with the classification metrics of the model
+        
+    OUTPUT
+    fig - Saves the results in a heatmap image file
+    '''
+    
+    fig = px.imshow(
+        df, 
+        color_continuous_scale='BuPu',
+        aspect="auto"
+    )
+
+    fig.update_layout(
+        title={
+            'text': "Classification metrics per category heatmap",
+            'xanchor': 'center',
+            'yanchor': 'top',
+            'x':0.5
+        }
+    )
+
+    fig.write_image('classification_metrics.png', engine='kaleido')
+
 
 def evaluate_model(model, X_test, Y_test, category_names):
     
@@ -160,6 +189,10 @@ def evaluate_model(model, X_test, Y_test, category_names):
     
     results_df = pd.DataFrame(report_list)
     print(results_df.set_index('category'))
+
+    create_classification_metrics_heatmap(
+        results_df.set_index('category')
+    )
 
 
 def save_model(model, model_filepath):
