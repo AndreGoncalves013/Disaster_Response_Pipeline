@@ -10,7 +10,7 @@
 
 ## Project Motivation<a name="motivation"></a>
 
-In this project, I had to use data engineering skills, such as doing natural language preprocessing, to analyze disaster data from [Appen](https://appen.com/) (also know as Figure 8) to build a model for an API that classifies disaster messages in multiple categories.
+In this project, I had to use data engineering skills, such as doing natural language preprocessing, to analyze disaster data from [Appen](https://appen.com/) (also known as Figure 8) to build a model for an API that classifies disaster messages in multiple categories.
 
 With their dataset, I was able to develop a Machine Learning Pipeline to classify new messages in the same categories.
 
