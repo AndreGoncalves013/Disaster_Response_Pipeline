@@ -16,8 +16,8 @@ def load_data(messages_filepath, categories_filepath):
     '''
 
     # Reading the csv files
-    messages_df = pd.read_csv('disaster_messages.csv')
-    categories_df = pd.read_csv('disaster_categories.csv')
+    messages_df = pd.read_csv(messages_filepath)
+    categories_df = pd.read_csv(categories_filepath)
 
     # Merging messages with categories dataframes
     df = messages_df.merge(categories_df, how='inner', on='id')
@@ -32,7 +32,7 @@ def load_data(messages_filepath, categories_filepath):
        
         target_df[column] = target_df[column]\
             .apply(lambda x:x[-1])\
-            .astype(int)
+            .astype(int).astype(bool)
     
     # Concatenating the original df with the target_df
     df = df.drop(columns='categories', axis=1)
@@ -65,7 +65,7 @@ def save_data(df, database_filename):
     '''
 
     engine = create_engine(f'sqlite:///{database_filename}')
-    df.to_sql('disaster_messages', engine, index=False)
+    df.to_sql('disaster_messages', engine, index=False, if_exists='replace')
 
 
 def main():
